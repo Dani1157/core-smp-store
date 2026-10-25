@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Official Core SMP store. Ranks, tokens and more. Java and Bedrock supported.">
+<title>⚔️ Core SMP Store</title>
+<link rel="icon" href="images/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="embers" aria-hidden="true"></canvas>
+<div class="cursor" id="cursor"></div>
+
+<header><div class="wrap bar">
+  <a class="brand" href="#top"><img src="images/public.png" alt="Core SMP" width="72" height="72"></a>
+  <span class="sp"></span>
+  <button class="pill" data-act="copy-ip" title="Copy server IP"><b id="ip"></b> <svg viewBox="0 0 24 24" class="ic"><path d="M16 1H4a2 2 0 00-2 2v14h2V3h12V1zm3 4H8a2 2 0 00-2 2v14a2 2 0 002 2h11a2 2 0 002-2V7a2 2 0 00-2-2zm0 16H8V7h11v14z"/></svg></button>
+  <span class="pill hide-sm" id="online" hidden><i class="dot"></i><b id="onlineN"></b></span>
+  <a class="pill hide-sm" id="dc" href="#" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" class="ic blurple"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189z"/></svg><span>DISCORD</span> <b id="dcN"></b></a>
+  
+  <div class="cur-wrap">
+    <label for="currencySel" class="sr-only">Select Currency</label>
+    <select id="currencySel" class="pill cur-select">
+      <option value="GBP">£ GBP</option>
+      <option value="USD">$ USD</option>
+      <option value="EUR">€ EUR</option>
+    </select>
+  </div>
+  
+  <button class="pill" id="userBtn" data-act="open-sign">SIGN IN</button>
+  <button class="pill hot" data-act="open-cart"><svg viewBox="0 0 24 24" class="ic"><path d="M7 18a2 2 0 100 4 2 2 0 000-4zM1 2v2h2l3.6 7.6-1.4 2.4A2 2 0 007 17h12v-2H7.4l1.1-2h7.5a2 2 0 001.8-1l3.6-6.5A1 1 0 0020.5 4H5.2l-.9-2H1zm16 16a2 2 0 100 4 2 2 0 000-4z"/></svg>Basket <span class="count" id="count">0</span></button>
+</div></header>
+
+<main id="top">
+  <section class="hero" id="hero" aria-label="Featured">
+    <div class="slides" id="slides"></div>
+    <div class="hero-ctl"><button class="arrow" data-act="prev" aria-label="Previous">‹</button><button class="arrow" data-act="next" aria-label="Next">›</button></div>
+    <div class="dots" id="dots"></div>
+  </section>
+
+  <div class="wrap">
+    <div class="notice"><b>🎮 Java &amp; Bedrock supported.</b> Java: enter your username. Bedrock: switch to Bedrock when you sign in and we add the dot (.Steve) for you.</div>
+    
+    <div class="features">
+      <div><span>⚡</span><b>Instant delivery</b><small>Items arrive within a minute</small></div>
+      <div><span>🔒</span><b>Secure checkout</b><small>Payments handled by Tebex</small></div>
+      <div><span>🎮</span><b>Java &amp; Bedrock</b><small>Play on any edition</small></div>
+      <div data-act="open-discord" class="clickable-card"><span>💬</span><b>Discord support</b><small>Open a ticket anytime</small></div>
+    </div>
+    
+    <div id="shop"></div>
+    <div class="tabs" id="tabs"></div>
+    <div id="store"><div class="grid"><div class="sk"></div><div class="sk"></div><div class="sk"></div></div></div>
+
+    <section class="how">
+      <h2 class="center">How it works</h2>
+      <div class="steps">
+        <div data-act="open-sign" class="clickable-card"><b>1</b><h3>Sign in</h3><p>Enter your Java or Bedrock username.</p></div>
+        <div><b>2</b><h3>Pick your items</h3><p>Add ranks or tokens to your basket.</p></div>
+        <div><b>3</b><h3>Pay securely</h3><p>Checkout is handled by Tebex.</p></div>
+        <div><b>4</b><h3>Receive in-game</h3><p>Items arrive within a minute.</p></div>
+      </div>
+    </section>
+
+    <section class="help">
+      <div>
+        <h3>Need help with an order?</h3>
+        <p>Open a ticket on Discord and we’ll sort it out. Rank Discord roles are claimed by opening a ticket.</p>
+      </div>
+      <a class="cta" id="dc2" href="https://discord.gg/XGQ5DHdSfA" target="_blank" rel="noopener noreferrer">Join our Discord</a>
+    </section>
+
+    <h2 class="center">FAQ</h2>
+    <div class="faq">
+      <details><summary>When do I receive my items?</summary><p>Right after payment, usually within a minute. If you’re offline, they’re delivered the next time you join.</p></details>
+      <details><summary>I play on Bedrock. What do I enter?</summary><p>Choose Bedrock when you sign in. Your gamertag gets a dot in front, for example .Steve</p></details>
+      <details><summary>How do I join Core SMP?</summary><p>Open Multiplayer, add a server and enter <b id="ip2"></b></p></details>
+      <details><summary>Can I get a refund?</summary><p>All purchases are final and non-refundable. Chargebacks or disputes result in a permanent ban.</p></details>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="pay" aria-label="Accepted payment methods">
+    <i class="visa">VISA</i><i class="mc"><b></b><b></b></i><i class="amex">AMEX</i><i class="ap"> Pay</i><i>G Pay</i><i class="pp">Pay<em>Pal</em></i><i class="btc">₿</i><i>💳 Cards</i>
+  </div>
+  <p>🔒 Payments are processed securely by Tebex. We never see your card details.</p>
+  <p>© 2026 Core SMP. Not affiliated with Mojang AB or Microsoft.</p>
+</footer>
+
+<div class="overlay" id="overlay" data-act="close"></div>
+
+<div class="modal" id="signModal" role="dialog" aria-modal="true" aria-labelledby="signTitle">
+  <button class="x" data-act="close" aria-label="Close">×</button>
+  <img class="mlogo" src="images/public.png" alt="Core SMP Logo" width="90" height="90">
+  <h3 id="signTitle">Enter your Minecraft username</h3>
+  <div class="seg"><button class="on" data-act="edition" data-ed="java">Java</button><button data-act="edition" data-ed="bedrock">Bedrock</button></div>
+  <input id="user" placeholder="Username" autocomplete="off" maxlength="17" spellcheck="false">
+  <p class="hint" id="hint">Java: 3 to 16 letters, numbers or underscores.</p>
+  <p class="err" id="uerr"></p>
+  <button class="go" data-act="login">Login</button>
+</div>
+
+<aside class="drawer" id="drawer" aria-label="Basket">
+  <div class="dh"><b>Your basket</b><button class="x2" data-act="close" aria-label="Close">×</button></div>
+  <div class="who" id="who"></div>
+  <div class="ditems" id="items"></div>
+  <div class="df">
+    <div class="row"><b>Total</b><b id="total"></b></div>
+    <p class="err" id="msg"></p>
+    <button class="go" id="checkout" data-act="checkout">Checkout securely</button>
+    <p class="tiny">You’ll be taken to Tebex’s secure payment page.</p>
+  </div>
+</aside>
+
+<div id="toasts" aria-live="polite"></div>
+<section class="debug" id="debug" hidden></section>
+
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
