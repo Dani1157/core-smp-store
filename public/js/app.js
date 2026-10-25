@@ -17,6 +17,7 @@
   let user = store.get("core_user", null);
   if (user && !(user.edition === "bedrock" ? BEDROCK : JAVA).test(user.name || "")) user = null;
   
+  // CURRENCY CONVERTER & GEO-DETECTION
   let baseCurrency = C.currency || "GBP";
   let currentCurrency = store.get("core_currency", baseCurrency);
   let fxRate = 1; 
@@ -140,13 +141,29 @@
     } catch (e) {
       lastErr = typeof e === "string" ? e : "request blocked or offline";
       if (C.demo) { 
-        cats = [{name:"Packages",description:"",packages:[
-          {id:1,name:"+ Rank",price:2.99,base_price:2.99},
-          {id:2,name:"++ Rank",price:5.96,base_price:5.96},
-          {id:3,name:"+++ Rank",price:14.36,base_price:14.36}]},
-        {name:"Tokens",description:"",packages:[
-          {id:4,name:"400 TOKENS",price:1.19,base_price:1.19},
-          {id:5,name:"2500 TOKENS",price:4.19,base_price:4.19}]}];
+        // UPDATED FALLBACK PRICES TO MATCH YOUR REAL PRICES
+        cats = [
+          {name:"Packages",description:"Show off your rank in chat.",packages:[
+            {id:1,name:"+ Rank",description:"+ rank tag in chat",price:2.99,base_price:2.99},
+            {id:2,name:"++ Rank",description:"++ rank tag in chat",price:5.96,base_price:5.96},
+            {id:3,name:"+++ Rank",description:"+++ rank tag in chat",price:14.36,base_price:14.36}]},
+          {name:"Tags",description:"Custom tags for your name.",packages:[
+            {id:10,name:"Sad face tag",description:"This is for the tag in game",price:4.80,base_price:4.80},
+            {id:11,name:"Crown tag",description:"This is for the tag in game",price:4.80,base_price:4.80},
+            {id:12,name:"Heart tag",description:"This is for the tag in game",price:4.80,base_price:4.80},
+            {id:13,name:"Meteor tag",description:"This is for the tag in game",price:4.80,base_price:4.80},
+            {id:14,name:"Sword tag",description:"This is for the tag in game",price:4.80,base_price:4.80},
+            {id:15,name:"Money tag",description:"This is for the tag in game",price:4.80,base_price:4.80},
+            {id:16,name:"Star tag",description:"This is for the tag in game",price:4.80,base_price:4.80},
+            {id:17,name:"Custom tag",description:"This is for the tag in game",price:15.00,base_price:15.00}]},
+          {name:"Tokens",description:"Spend tokens in-game on ranks and suffix tags.",packages:[
+            {id:4,name:"400 TOKENS",description:"Buy ranks and suffix tags",price:1.19,base_price:1.19},
+            {id:5,name:"2500 TOKENS",description:"Buy ranks and suffix tags",price:4.19,base_price:4.19},
+            {id:6,name:"5000 + 500 FREE TOKENS",description:"5,000 + 500 bonus tokens",price:7.19,base_price:7.19},
+            {id:7,name:"10000 + 2000 FREE TOKENS",description:"10,000 + 2,000 bonus tokens",price:11.99,base_price:11.99},
+            {id:8,name:"25000 + 7000 FREE TOKENS",description:"25,000 + 7,000 bonus tokens",price:27.59,base_price:27.59},
+            {id:9,name:"50000 + 20000 FREE TOKENS",description:"50,000 + 20,000 bonus tokens",price:47.99,base_price:47.99}]}
+        ];
       } else {
         $("#store").innerHTML = '<div class="panel"><h3>Store unavailable</h3><p class="sub">We couldn’t load the store right now. Please refresh in a moment, or contact us on Discord.</p></div>';
         return;
@@ -182,7 +199,6 @@
     const x = C.items[p.name] || {}, img = safeImg(x.image || p.image), price = priceOf(p), base = Number(p.base_price || price);
     const sale = base > price, bonus = x.bonus || (sale ? "-" + Math.round((1 - price / base) * 100) + "% OFF" : "");
     
-    // FIXED: If image fails to load, show the text fallback so it doesn't go blank
     const fallbackNum = `<div class="num"><b>${esc(x.big || "")}</b><small>${esc(x.label || "")}</small></div>`;
     
     return `<article class="card${x.popular ? " pop" : ""}">
