@@ -1,3 +1,6 @@
+// Set production mode BEFORE requiring express
+process.env.NODE_ENV = 'production';
+
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
@@ -8,8 +11,11 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Required for Render's proxy to work with rate limiting
+// Trust the first proxy (Render's load balancer)
 app.set('trust proxy', 1);
+
+// Hide the Express signature header
+app.disable('x-powered-by');
 
 // --- SECURITY MIDDLEWARE ---
 app.use(helmet({
@@ -29,11 +35,40 @@ app.use(helmet({
   referrerPolicy: { policy: "strict-origin-when-cross-origin" }
 }));
 
-// Rate limiting to prevent spam/abuse
+// FIX: Normalize IPv6 to /64 prefix so attackers can't rotate addresses
+function normalizeIp(ip) {
+  if (!ip) return 'unknown';
+  // Strip IPv4-mapped IPv6
+  if (ip.startsWith('::ffff:')) ip = ip.slice(7);
+  // If IPv6, group into /64
+  if (ip.includes(':')) {
+    const parts = ip.split(':');
+    // Handle :: shorthand
+    const expanded = ip.includes('::') ? expandIPv6(ip) : parts;
+    return expanded.slice(0, 4).join(':') + '::/64';
+  }
+  return ip;
+}
+
+function expandIPv6(ip) {
+  const [head, tail] = ip.split('::');
+  const headParts = head ? head.split(':') : [];
+  const tailParts = tail ? tail.split(':') : [];
+  const missing = 8 - headParts.length - tailParts.length;
+  return [...headParts, ...Array(missing).fill('0'), ...tailParts];
+}
+
+// Rate limiting: keyed by normalized IP, blocks spam and abuse
 const limiter = rateLimit({
   windowMs: 1 * 60 * 1000,
   max: 30,
-  message: "Too many requests, please try again later."
+  message: "Too many requests, please try again later.",
+  standardHeaders: true,
+  legacyHeaders: false,
+  // FIX: Use normalized IPv6 so rotating addresses doesn't reset the limit
+  keyGenerator: (req) => {
+    return normalizeIp(req.ip);
+  }
 });
 app.use('/api/', limiter);
 
@@ -43,12 +78,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 const TEBEX_API = "https://headless.tebex.io/api";
 const TEBEX_PUBLIC = process.env.TEBEX_PUBLIC;
 const TEBEX_PRIVATE = process.env.TEBEX_PRIVATE;
-
-// FIX: Hardcoded site URL prevents phishing redirects via Referer header.
-// You must set SITE_URL in your Render environment variables.
 const SITE_URL = process.env.SITE_URL || "http://localhost:3000";
 
-// 1. Fetch categories (Server to Tebex)
+// 1. Fetch categories
 app.get('/api/categories', async (req, res) => {
   try {
     const auth = Buffer.from(`${TEBEX_PUBLIC}:${TEBEX_PRIVATE}`).toString('base64');
@@ -58,12 +90,13 @@ app.get('/api/categories', async (req, res) => {
     });
     res.json(response.data);
   } catch (error) {
-    console.error("Tebex Error:", error.response?.data || error.message);
+    // FIX: Never leak the error details to the client
+    console.error("Tebex Categories Error:", error.response?.data || error.message);
     res.status(500).json({ error: "Failed to fetch store data" });
   }
 });
 
-// 2. Secure Checkout with strict validation
+// 2. Secure Checkout
 app.post('/api/checkout', async (req, res) => {
   const { username, cart } = req.body;
   
@@ -102,9 +135,23 @@ app.post('/api/checkout', async (req, res) => {
     const checkoutRes = await axios.get(`${TEBEX_API}/accounts/${TEBEX_PUBLIC}/baskets/${ident}`, { headers, timeout: 10000 });
     res.json({ url: checkoutRes.data.data.links.checkout });
   } catch (error) {
-    console.error("Checkout Error:", error.response?.data || error.message);
+    // FIX: Never leak the error details to the client
+    console.error("Tebex Checkout Error:", error.response?.data || error.message);
     res.status(500).json({ error: "Failed to create checkout" });
   }
 });
 
-app.listen(PORT, () => console.log(`🔒 Secure store running on http://localhost:${PORT}`));
+// 3. FIX: Sanitized error handler for anything that slips through
+app.use((err, req, res, next) => {
+  // Log the full error server-side for debugging
+  console.error("Unhandled error:", err.message);
+  // Send a generic message to the client — no stack traces, no file paths
+  res.status(500).json({ error: "Something went wrong. Please try again." });
+});
+
+// 4. Catch-all for unknown API routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: "Not found" });
+});
+
+app.listen(PORT, () => console.log(`🔒 Secure store running in ${process.env.NODE_ENV} mode on http://localhost:${PORT}`));
