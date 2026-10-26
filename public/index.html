@@ -56,6 +56,13 @@
     <div class="tabs" id="tabs"></div>
     <div id="store"><div class="grid"><div class="sk"></div><div class="sk"></div><div class="sk"></div></div></div>
 
+    <!-- RESTORED COMPARE SECTION -->
+    <section id="compare" class="cmpwrap" hidden>
+      <h2 class="center">Compare ranks</h2>
+      <p class="sub">Every rank is kept forever, every season.</p>
+      <div class="cmp"></div>
+    </section>
+
     <section class="how">
       <h2 class="center">How it works</h2>
       <div class="steps">
@@ -103,6 +110,14 @@
   <p class="hint" id="hint">Java: 3 to 16 letters, numbers or underscores.</p>
   <p class="err" id="uerr"></p>
   <button class="go" data-act="login">Login</button>
+</div>
+
+<div class="modal" id="perkModal" role="dialog" aria-modal="true">
+  <button class="x" data-act="close" aria-label="Close">×</button>
+  <h3 id="perkTitle"></h3>
+  <p class="pn">What you get</p>
+  <ul id="perkList"></ul>
+  <button class="add" id="perkAddBtn">Add to basket</button>
 </div>
 
 <aside class="drawer" id="drawer" aria-label="Basket">

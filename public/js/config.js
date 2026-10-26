@@ -9,7 +9,25 @@ window.CORE_CONFIG = {
     { image: "images/core.png", title: "Core SMP Shop",  text: "Support the server and unlock ranks and tokens." },
     { image: "images/core.png", title: "Ranks & Tokens", text: "Stand out in chat and spend tokens in-game." }
   ],
-  compare: { cols: ["Rank +", "Rank ++", "Rank +++"], rows: [] },
+  // RESTORED COMPARE TABLE DATA
+  compare: { 
+    cols: ["Rank +", "Rank ++", "Rank +++"], 
+    rows: [
+      ["Home slots", "5", "15", "45"],
+      ["/string cooldown", "25s", "15s", "None"],
+      ["Enderchest", "6 row", "2 page 6 row", "4 page 6 row"],
+      ["/ec", "✓", "✓", "✓"],
+      ["/feed", "-", "✓", "✓"],
+      ["Villager discount", "-", "40%", "60%"],
+      ["/anvil /craftingtable /smithingtable /grindstone", "-", "-", "✓"],
+      ["Tab priority", "✓", "✓", "✓"],
+      ["Tab colour", "✓", "✓", "✓"],
+      ["Tab prefix", "-", "✓", "✓"],
+      ["Nametag prefix", "✓", "✓", "✓"],
+      ["Nametag colour", "-", "-", "✓"],
+      ["Discord role (make a ticket)", "✓", "✓", "✓"]
+    ]
+  },
   perksNote: "You keep the rank forever, every season.", 
   items: {
     "Rank +": { image: "images/rank-1.png", big: "+", label: "RANK", perks: ["You keep the rank forever, every season", "5 home slots", "Lower /string cooldown (25s)", "6 row enderchest", "/ec", 'Discord role (<a href="https://discord.gg/XGQ5DHdSfA" target="_blank" rel="noopener noreferrer">make a ticket to claim</a>)', "Tab priority", "Tab colour", "Nametag prefix" ] },

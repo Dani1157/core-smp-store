@@ -97,12 +97,10 @@ h2.center::after{transform:scaleX(-1)}
 .info{padding:6px 18px 18px;display:flex;flex-direction:column;gap:6px;flex:1;background:#0a0a0a;margin-top:-26px;position:relative;z-index:2}
 .info h3{margin:0;font-size:1.45rem;font-weight:900}
 
-/* FIXED: Stack the price and button so they don't fight for space */
 .foot{margin-top:auto;display:flex;flex-direction:column;align-items:stretch;gap:12px;padding-top:12px}
 .price{font-size:1.6rem;font-weight:900;color:#ff3b5c;white-space:nowrap;text-align:center} 
 .price s{color:var(--mute);font-size:.85rem;font-weight:400;margin-left:6px}
 
-/* ADD TO BASKET BUTTON */
 .add{border:0;background:linear-gradient(180deg,#f0123b,var(--accent));color:#fff;font:inherit;font-weight:800;padding:14px 20px;border-radius:12px;cursor:pointer;transition:.2s;white-space:nowrap;box-shadow:0 8px 24px -10px var(--glow);position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%}
 .add:hover{filter:brightness(1.2);transform:scale(1.02);box-shadow:0 12px 30px -8px var(--glow)}.add:active{transform:scale(.96)}
 .add::before{content:"🛒"}
@@ -137,6 +135,16 @@ input:focus{outline:2px solid var(--accent);border-color:transparent}
 .hint{color:var(--mute);font-size:.82rem;margin:8px 0 0}
 .go{width:100%;border:0;background:linear-gradient(180deg,#f0123b,var(--accent));color:#fff;font:inherit;font-weight:800;font-size:1rem;padding:14px;border-radius:12px;cursor:pointer;margin-top:8px;transition:.15s;box-shadow:0 10px 30px -10px var(--glow)}
 .go:hover{filter:brightness(1.15)}.go:disabled{opacity:.5;cursor:wait}
+
+/* NEW PERK MODAL STYLES */
+#perkModal{width:min(500px, 95vw); text-align:left; padding: 30px;}
+#perkModal .x { color:#fff; }
+#perkModal h3 { margin: 0 0 4px; font-size: 1.8rem; color: var(--text); }
+#perkModal .pn { color:#ff3b5c; font-weight:800; font-size:.85rem; letter-spacing:.04em; text-transform:uppercase; margin: 0 0 16px; }
+#perkModal ul { margin:0; padding:0; list-style:none; display:grid; gap:8px; }
+#perkModal li { color:var(--text); padding-left:24px; position:relative; font-size:.95rem; }
+#perkModal li::before { content:""; position:absolute; left:4px; top:.4em; width:8px; height:8px; background:var(--accent); border-radius:2px; }
+#perkModal .add { width: 100%; margin-top: 24px; justify-content: center; padding: 16px; font-size: 1.1rem; }
 
 .drawer{position:fixed;top:0;right:0;bottom:0;width:min(400px,100%);z-index:70;background:#0a0a0a;border-left:1px solid var(--line);transform:translateX(105%);transition:.3s;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);box-shadow:-20px 0 60px rgba(0,0,0,.6)}
 .drawer.open{transform:none}

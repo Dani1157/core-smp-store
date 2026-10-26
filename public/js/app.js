@@ -26,7 +26,6 @@
   function makeFmt() { return new Intl.NumberFormat("en-GB", {style: "currency", currency: currentCurrency}); }
   const money = n => fmt.format(n * fxRate);
 
-  // Rates come from our own server (/api/rates), not a third party
   async function fetchExchangeRates() {
     fxRate = 1;
     if (currentCurrency !== baseCurrency) {
@@ -49,7 +48,10 @@
     store.set("core_currency", cur);
     await fetchExchangeRates();
     render();
-    if (cats.length) loadCards();
+    if (cats.length) {
+      loadCards();
+      compare();
+    }
   }
 
   const priceOf = p => {
@@ -72,7 +74,6 @@
   $("#dc").href = C.discord; $("#dc2").href = C.discord;
   document.title = "⚔️ " + C.serverName + " Store";
 
-  // Image failed to load -> show the text fallback (no inline onerror, so it works with our CSP)
   document.addEventListener("error", e => {
     const t = e.target;
     if (!t || t.tagName !== "IMG") return;
@@ -100,7 +101,6 @@
     }
   });
 
-  // Server status + Discord member count, both via our own /api/status
   function online() {
     fetch(`${API}/status`).then(r => r.json()).then(j => {
       $("#online").hidden = !j.online;
@@ -165,6 +165,7 @@
 
     await fetchExchangeRates();
     loadCards();
+    compare();
     render();
   }
 
@@ -185,14 +186,22 @@
     }
   }
 
+  // RESTORED COMPARE RENDER FUNCTION
+  function compare() {
+    const K = C.compare, el = $("#compare"); 
+    if (!K || !el) return;
+    const byName = n => Object.values(packs).find(p => p.name === n);
+    el.hidden = false;
+    el.querySelector(".cmp").innerHTML = `<table><thead><tr><th></th>${K.cols.map(n => { const p = byName(n); return `<th>${esc(n)}${p ? `<small>${money(priceOf(p))}</small>` : ""}</th>`; }).join("")}</tr></thead><tbody>${K.rows.map(r => `<tr><th>${esc(r[0])}</th>${r.slice(1).map(v => `<td>${v === "✓" ? '<span class="y">✓</span>' : v === "-" ? '<span class="n">–</span>' : esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  }
+  
   function card(p) {
     const x = C.items[p.name] || {}, img = safeImg(x.image || p.image), price = priceOf(p), base = Number(p.base_price || price);
     const sale = base > price, bonus = x.bonus || (sale ? "-" + Math.round((1 - price / base) * 100) + "% OFF" : "");
-    // Fallback is always rendered; CSS hides it unless the thumb has the "noimg" class
     const fallbackNum = `<div class="num"><b>${esc(x.big || "")}</b><small>${esc(x.label || "")}</small></div>`;
 
     return `<article class="card${x.popular ? " pop" : ""}">
-      <div class="thumb${img ? "" : " noimg"}">
+      <div class="thumb${img ? "" : " noimg"}" data-act="open-perks" data-id="${+p.id}">
         ${fallbackNum}
         ${img ? `<img src="${esc(img)}" alt="${esc(p.name)}" loading="lazy">` : ""}
         ${C.showBadges ? `<div class="badges">${x.popular ? '<span class="b red">Most popular</span>' : ""}${bonus ? `<span class="b">${esc(bonus)}</span>` : ""}</div>` : ""}
@@ -218,7 +227,7 @@
     $("#checkout").textContent = user ? "Checkout securely" : "Sign in to checkout";
   }
   function overlay(on) { $("#overlay").classList.toggle("show", on); }
-  function closeAll() { $("#drawer").classList.remove("open"); $("#signModal").classList.remove("show"); overlay(false); }
+  function closeAll() { $("#drawer").classList.remove("open"); $("#signModal").classList.remove("show"); $("#perkModal").classList.remove("show"); overlay(false); }
   function openCart() { closeAll(); $("#drawer").classList.add("open"); overlay(true); }
   function openSign(ed) {
     closeAll(); setEdition(ed || (user && user.edition) || "java");
@@ -241,6 +250,26 @@
     user = {name: v, edition}; store.set("core_user", user); render(); closeAll();
     toast("Signed in as " + uname(), head());
     if (window.__resume) { window.__resume = false; openCart(); }
+  }
+
+  function openPerks(id) {
+    const p = packs[id]; if (!p) return;
+    const x = C.items[p.name] || {};
+    $("#perkTitle").textContent = p.name;
+    
+    if (x.perks) {
+      $("#perkList").innerHTML = x.perks.map(k => `<li>${k}</li>`).join("");
+    } else {
+      $("#perkList").innerHTML = `<li>${esc(strip(p.description))}</li>`;
+    }
+    
+    const btn = $("#perkAddBtn");
+    btn.dataset.id = id;
+    btn.onclick = () => { closeAll(); addToCart(id); };
+    
+    closeAll(); 
+    $("#perkModal").classList.add("show"); 
+    overlay(true);
   }
 
   let last = 0;
@@ -279,6 +308,7 @@
     const d = el.dataset;
     switch (d.act) {
       case "add": addToCart(+d.id); break;
+      case "open-perks": openPerks(+d.id); break;
       case "qty": { const i = cart.find(x => x.id === +d.id); if (i) { i.qty = Math.min(10, i.qty + +d.d); cart = cart.filter(x => x.qty > 0); render(); } break; }
       case "open-cart": openCart(); break;
       case "open-sign": openSign(); break;
@@ -313,7 +343,6 @@
     const c = $("#count"); c.classList.remove("bump"); void c.offsetWidth; c.classList.add("bump");
   }
 
-  // Tebex redirects back to ?thanks=1 after payment (display only, not proof of payment)
   if (new URLSearchParams(location.search).get("thanks")) {
     cart = []; render();
     const msg = document.createElement("div");
