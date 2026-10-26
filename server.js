@@ -7,20 +7,19 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const helmet = require('helmet');
-// Needs express-rate-limit v8+  ->  npm i express-rate-limit@latest
 const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
 const path = require('path');
 
 // ---------- CONFIG (fail fast if something is missing) ----------
 const PORT = process.env.PORT || 3000;
 const TEBEX_PUBLIC = process.env.TEBEX_PUBLIC;
-const TEBEX_PRIVATE = process.env.TEBEX_PRIVATE;
+const TEBEX_PRIVATE = process.env.TEBEX_PRIVATE;             // optional
 const SITE_URL = process.env.SITE_URL;                       // e.g. https://core-smp-store.onrender.com
 const SERVER_IP = process.env.SERVER_IP || 'core.lagless.games';
 const SERVER_PORT = process.env.SERVER_PORT || '';
 const DISCORD_CODE = process.env.DISCORD_CODE || 'XGQ5DHdSfA';
 
-for (const [k, v] of Object.entries({ TEBEX_PUBLIC, TEBEX_PRIVATE, SITE_URL })) {
+for (const [k, v] of Object.entries({ TEBEX_PUBLIC, SITE_URL })) {
   if (!v) { console.error(`Missing required env var: ${k}`); process.exit(1); }
 }
 
@@ -79,8 +78,9 @@ const tebex = axios.create({
   baseURL: 'https://headless.tebex.io/api',
   timeout: 10000,
   headers: {
-    Authorization: 'Basic ' + Buffer.from(`${TEBEX_PUBLIC}:${TEBEX_PRIVATE}`).toString('base64'),
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    // Only send the auth header if a private key is set
+    ...(TEBEX_PRIVATE ? { Authorization: 'Basic ' + Buffer.from(`${TEBEX_PUBLIC}:${TEBEX_PRIVATE}`).toString('base64') } : {})
   }
 });
 
