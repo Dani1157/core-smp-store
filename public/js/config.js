@@ -9,7 +9,6 @@ window.CORE_CONFIG = {
     { image: "images/core.png", title: "Core SMP Shop",  text: "Support the server and unlock ranks and tokens." },
     { image: "images/core.png", title: "Ranks & Tokens", text: "Stand out in chat and spend tokens in-game." }
   ],
-  // RESTORED COMPARE TABLE DATA
   compare: { 
     cols: ["Rank +", "Rank ++", "Rank +++"], 
     rows: [

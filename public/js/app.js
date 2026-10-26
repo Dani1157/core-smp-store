@@ -186,7 +186,6 @@
     }
   }
 
-  // RESTORED COMPARE RENDER FUNCTION
   function compare() {
     const K = C.compare, el = $("#compare"); 
     if (!K || !el) return;
