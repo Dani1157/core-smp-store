@@ -1,36 +1,33 @@
 'use strict';
-
-// Set production mode BEFORE requiring express
 process.env.NODE_ENV = 'production';
 
 require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const helmet = require('helmet');
-// Works on any express-rate-limit version (v8+ gives the best IPv6 protection)
 const rateLimitLib = require('express-rate-limit');
 const rateLimit = rateLimitLib.rateLimit || rateLimitLib;
 const ipKeyGenerator = rateLimitLib.ipKeyGenerator || ((ip) => ip);
 const path = require('path');
 
-// ---------- CONFIG (fail fast if something is missing) ----------
 const PORT = process.env.PORT || 3000;
 const TEBEX_PUBLIC = process.env.TEBEX_PUBLIC;
-const TEBEX_PRIVATE = process.env.TEBEX_PRIVATE;             // optional
-const SITE_URL = process.env.SITE_URL;                       // e.g. https://core-smp-store.onrender.com
+const TEBEX_PRIVATE = process.env.TEBEX_PRIVATE;
+const SITE_URL = process.env.SITE_URL || 'http://localhost:3000';
 const SERVER_IP = process.env.SERVER_IP || 'core.lagless.games';
 const SERVER_PORT = process.env.SERVER_PORT || '';
 const DISCORD_CODE = process.env.DISCORD_CODE || 'XGQ5DHdSfA';
 
-for (const [k, v] of Object.entries({ TEBEX_PUBLIC, SITE_URL })) {
-  if (!v) { console.error(`Missing required env var: ${k}`); process.exit(1); }
+if (!TEBEX_PUBLIC || !SITE_URL) {
+  console.error(`Missing required env var: TEBEX_PUBLIC or SITE_URL`);
+  process.exit(1);
 }
 
 const app = express();
-app.set('trust proxy', 1);          // Render's load balancer
+app.set('trust proxy', 1);
 app.disable('x-powered-by');
 
-// ---------- SECURITY HEADERS ----------
+// --- SECURITY HEADERS ---
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -38,8 +35,9 @@ app.use(helmet({
       scriptSrc: ["'self'"],
       styleSrc: ["'self'", 'https://fonts.googleapis.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-      imgSrc: ["'self'", 'data:', 'https://mc-heads.net', 'https://dunb17ur4ymx4.cloudfront.net'],
-      connectSrc: ["'self'"],
+      // FIXED: Added https: to allow Tebex images (cloudfront.net) and any other https image
+      imgSrc: ["'self'", 'data:', 'https:'],
+      connectSrc: ["'self'", 'https://headless.tebex.io', 'https://discord.com', 'https://api.mcstatus.io', 'https://api.exchangerate-api.com', 'https://ipapi.co'],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
       baseUri: ["'self'"],
@@ -51,7 +49,6 @@ app.use(helmet({
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
 
-// ---------- RATE LIMITING ----------
 const keyGenerator = (req) => ipKeyGenerator(req.ip, 64);
 
 const apiLimiter = rateLimit({
@@ -78,18 +75,17 @@ app.use('/api', apiLimiter);
 app.use(express.json({ limit: '10kb' }));
 app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h' }));
 
-// ---------- TEBEX CLIENT ----------
+// --- TEBEX CLIENT ---
 const tebex = axios.create({
   baseURL: 'https://headless.tebex.io/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
-    // Only send the auth header if a private key is set
     ...(TEBEX_PRIVATE ? { Authorization: 'Basic ' + Buffer.from(`${TEBEX_PUBLIC}:${TEBEX_PRIVATE}`).toString('base64') } : {})
   }
 });
 
-// ---------- TINY CACHE ----------
+// --- TINY CACHE ---
 const cache = new Map();
 function cached(key, ttlMs, loader) {
   const e = cache.get(key) || {};
@@ -111,7 +107,7 @@ const getCategories = () => cached('categories', 60 * 1000, async () => {
   return r.data;
 });
 
-// ---------- ROUTES ----------
+// --- ROUTES ---
 app.get('/api/categories', async (req, res) => {
   try {
     res.json(await getCategories());
@@ -196,10 +192,8 @@ app.post('/api/checkout', checkoutLimiter, async (req, res) => {
   }
 });
 
-// Unknown API routes (must come BEFORE the error handler)
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
 
-// Error handler (must be LAST)
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err.message);
   if (err.type === 'entity.parse.failed') return res.status(400).json({ error: 'Invalid JSON' });
