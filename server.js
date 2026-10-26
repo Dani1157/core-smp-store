@@ -8,10 +8,8 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Required for Render's proxy to work with rate limiting
 app.set('trust proxy', 1);
 
-// --- SECURITY MIDDLEWARE ---
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -54,6 +52,34 @@ app.get('/api/categories', async (req, res) => {
   } catch (error) {
     console.error("Tebex Error:", error.response?.data || error.message);
     res.status(500).json({ error: "Failed to fetch store data" });
+  }
+});
+
+app.get('/api/status', async (req, res) => {
+  const addr = process.env.SERVER_IP || "core.lagless.games";
+  const discordCode = process.env.DISCORD_CODE || "XGQ5DHdSfA";
+  
+  try {
+    const [mc, dc] = await Promise.allSettled([
+      axios.get(`https://api.mcstatus.io/v2/status/java/${addr}`, { timeout: 5000 }),
+      axios.get(`https://discord.com/api/v9/invites/${discordCode}?with_counts=true`, { timeout: 5000 })
+    ]);
+    res.json({
+      online: mc.status === 'fulfilled' ? !!mc.value.data.online : false,
+      players: mc.status === 'fulfilled' ? (mc.value.data.players?.online ?? null) : null,
+      members: dc.status === 'fulfilled' ? (dc.value.data.approximate_member_count ?? null) : null
+    });
+  } catch (error) {
+    res.json({ online: false, players: null, members: null });
+  }
+});
+
+app.get('/api/rates', async (req, res) => {
+  try {
+    const r = await axios.get('https://api.exchangerate-api.com/v4/latest/GBP', { timeout: 5000 });
+    res.json({ GBP: 1, USD: r.data.rates.USD, EUR: r.data.rates.EUR });
+  } catch (error) {
+    res.status(502).json({ error: 'Rates unavailable' });
   }
 });
 
