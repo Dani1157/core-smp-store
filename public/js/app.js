@@ -101,7 +101,6 @@
     }
   });
 
-  // RESTORED ONLINE PLAYER COUNT
   function online() {
     fetch(`${API}/status`).then(r => r.json()).then(j => {
       $("#online").hidden = !j.online;
@@ -187,7 +186,6 @@
     }
   }
 
-  // RESTORED COMPARE TABLE
   function compare() {
     const K = C.compare, el = $("#compare"); 
     if (!K || !el) return;
@@ -253,7 +251,6 @@
     if (window.__resume) { window.__resume = false; openCart(); }
   }
 
-  // RESTORED PERK POPUP FUNCTION
   function openPerks(id) {
     const p = packs[id]; if (!p) return;
     const x = C.items[p.name] || {};
