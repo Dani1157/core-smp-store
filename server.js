@@ -38,7 +38,7 @@ app.use(helmet({
       scriptSrc: ["'self'"],
       styleSrc: ["'self'", 'https://fonts.googleapis.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-      imgSrc: ["'self'", 'data:', 'https://mc-heads.net'],
+      imgSrc: ["'self'", 'data:', 'https://mc-heads.net', 'https://dunb17ur4ymx4.cloudfront.net'],
       connectSrc: ["'self'"],
       objectSrc: ["'none'"],
       frameAncestors: ["'none'"],
