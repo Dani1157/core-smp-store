@@ -7,7 +7,10 @@ require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const helmet = require('helmet');
-const { rateLimit, ipKeyGenerator } = require('express-rate-limit');
+// Works on any express-rate-limit version (v8+ gives the best IPv6 protection)
+const rateLimitLib = require('express-rate-limit');
+const rateLimit = rateLimitLib.rateLimit || rateLimitLib;
+const ipKeyGenerator = rateLimitLib.ipKeyGenerator || ((ip) => ip);
 const path = require('path');
 
 // ---------- CONFIG (fail fast if something is missing) ----------
@@ -54,6 +57,7 @@ const keyGenerator = (req) => ipKeyGenerator(req.ip, 64);
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: 60,
+  max: 60,
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator,
@@ -63,6 +67,7 @@ const apiLimiter = rateLimit({
 const checkoutLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: 5,
+  max: 5,
   standardHeaders: true,
   legacyHeaders: false,
   keyGenerator,

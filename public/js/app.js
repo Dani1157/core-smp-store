@@ -26,7 +26,6 @@
   function makeFmt() { return new Intl.NumberFormat("en-GB", {style: "currency", currency: currentCurrency}); }
   const money = n => fmt.format(n * fxRate);
 
-  // Rates come from our own server (/api/rates), not a third party
   async function fetchExchangeRates() {
     fxRate = 1;
     if (currentCurrency !== baseCurrency) {
@@ -60,6 +59,11 @@
     return Number(v ?? p.price ?? p.base_price ?? 0);
   };
 
+  const norm = s => String(s || "").toLowerCase().replace(/\brank\b/g, "").replace(/\s+/g, "");
+  const ITEM_INDEX = {};
+  Object.keys(C.items || {}).forEach(k => { ITEM_INDEX[norm(k)] = C.items[k]; });
+  const itemFor = name => (C.items && C.items[name]) || ITEM_INDEX[norm(name)] || {};
+
   const uname = () => user ? (user.edition === "bedrock" ? "." : "") + user.name : "";
   const head = () => user && user.edition === "java" ? "https://mc-heads.net/avatar/" + encodeURIComponent(user.name) + "/40" : "";
 
@@ -75,7 +79,6 @@
   $("#dc").href = C.discord; $("#dc2").href = C.discord;
   document.title = "⚔️ " + C.serverName + " Store";
 
-  // Image failed to load -> show the text fallback (no inline onerror, so it works with our CSP)
   document.addEventListener("error", e => {
     const t = e.target;
     if (!t || t.tagName !== "IMG") return;
@@ -103,7 +106,6 @@
     }
   });
 
-  // Server status + Discord member count, both via our own /api/status
   function online() {
     fetch(`${API}/status`).then(r => r.json()).then(j => {
       $("#online").hidden = !j.online;
@@ -137,9 +139,9 @@
       if (C.demo) {
         cats = [
           {name:"Packages",description:"Show off your rank in chat.",packages:[
-            {id:1,name:"+ Rank",description:"+ rank tag in chat",price:2.99,base_price:2.99},
-            {id:2,name:"++ Rank",description:"++ rank tag in chat",price:5.96,base_price:5.96},
-            {id:3,name:"+++ Rank",description:"+++ rank tag in chat",price:14.36,base_price:14.36}]},
+            {id:1,name:"Rank +",description:"+ rank tag in chat",price:2.99,base_price:2.99},
+            {id:2,name:"Rank ++",description:"++ rank tag in chat",price:5.96,base_price:5.96},
+            {id:3,name:"Rank +++",description:"+++ rank tag in chat",price:14.36,base_price:14.36}]},
           {name:"Tags",description:"Custom tags for your name.",packages:[
             {id:10,name:"Sad face tag",description:"This is for the tag in game",price:4.80,base_price:4.80},
             {id:11,name:"Crown tag",description:"This is for the tag in game",price:4.80,base_price:4.80},
@@ -192,17 +194,15 @@
   function compare() {
     const K = C.compare, el = $("#compare");
     if (!K || !el) return;
-    const byName = n => Object.values(packs).find(p => p.name === n);
+    const byName = n => Object.values(packs).find(p => norm(p.name) === norm(n));
     el.hidden = false;
     el.querySelector(".cmp").innerHTML = `<table><thead><tr><th></th>${K.cols.map(n => { const p = byName(n); return `<th>${esc(n)}${p ? `<small>${money(priceOf(p))}</small>` : ""}</th>`; }).join("")}</tr></thead><tbody>${K.rows.map(r => `<tr><th>${esc(r[0])}</th>${r.slice(1).map(v => `<td>${v === "✓" ? '<span class="y">✓</span>' : v === "-" ? '<span class="n">–</span>' : esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
   }
 
   function card(p) {
-    const x = C.items[p.name] || {}, img = safeImg(x.image || p.image), price = priceOf(p), base = Number(p.base_price || price);
+    const x = itemFor(p.name), img = safeImg(x.image || p.image), price = priceOf(p), base = Number(p.base_price || price);
     const sale = base > price, bonus = x.bonus || (sale ? "-" + Math.round((1 - price / base) * 100) + "% OFF" : "");
-    // Fallback is always rendered; CSS hides it unless the thumb has the "noimg" class
     const fallbackNum = `<div class="num"><b>${esc(x.big || "")}</b><small>${esc(x.label || "")}</small></div>`;
-    // Only items that have perks get the "View perks" hover and the popup
     const perksAttrs = x.perks ? ` data-act="open-perks" data-id="${+p.id}"` : "";
 
     return `<article class="card${x.popular ? " pop" : ""}">
@@ -259,10 +259,9 @@
 
   function openPerks(id) {
     const p = packs[id]; if (!p) return;
-    const x = C.items[p.name] || {};
+    const x = itemFor(p.name);
     $("#perkTitle").textContent = p.name;
 
-    // Perks come from config.js (trusted), so links in them are allowed
     if (x.perks) {
       $("#perkList").innerHTML = x.perks.map(k => `<li>${k}</li>`).join("");
     } else {
@@ -349,7 +348,6 @@
     const c = $("#count"); c.classList.remove("bump"); void c.offsetWidth; c.classList.add("bump");
   }
 
-  // Tebex redirects back to ?thanks=1 after payment (display only, not proof of payment)
   if (new URLSearchParams(location.search).get("thanks")) {
     cart = []; render();
     const msg = document.createElement("div");
