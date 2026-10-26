@@ -17,7 +17,6 @@
   let user = store.get("core_user", null);
   if (user && !(user.edition === "bedrock" ? BEDROCK : JAVA).test(user.name || "")) user = null;
   
-  // CURRENCY CONVERTER & GEO-DETECTION
   let baseCurrency = C.currency || "GBP";
   let currentCurrency = store.get("core_currency", baseCurrency);
   let fxRate = 1; 
@@ -141,7 +140,6 @@
     } catch (e) {
       lastErr = typeof e === "string" ? e : "request blocked or offline";
       if (C.demo) { 
-        // UPDATED FALLBACK PRICES TO MATCH YOUR REAL PRICES
         cats = [
           {name:"Packages",description:"Show off your rank in chat.",packages:[
             {id:1,name:"+ Rank",description:"+ rank tag in chat",price:2.99,base_price:2.99},
@@ -198,7 +196,6 @@
   function card(p) {
     const x = C.items[p.name] || {}, img = safeImg(x.image || p.image), price = priceOf(p), base = Number(p.base_price || price);
     const sale = base > price, bonus = x.bonus || (sale ? "-" + Math.round((1 - price / base) * 100) + "% OFF" : "");
-    
     const fallbackNum = `<div class="num"><b>${esc(x.big || "")}</b><small>${esc(x.label || "")}</small></div>`;
     
     return `<article class="card${x.popular ? " pop" : ""}">
@@ -304,6 +301,9 @@
       case "prev": go(slide - 1); window.__auto(); break;
       case "next": go(slide + 1); window.__auto(); break;
       case "dot": go(+d.n); window.__auto(); break;
+      case "back-to-store": 
+        window.location.href = window.location.pathname; 
+        break;
     }
   });
   document.addEventListener("keydown", e => {
@@ -319,7 +319,8 @@
     const c = $("#count"); c.classList.remove("bump"); void c.offsetWidth; c.classList.add("bump");
   }
 
-  if (new URLSearchParams(location.search).get("thanks")) { 
+  // FIXED: Show success screen when Tebex redirects back to ?thanks=1
+  if (new URLSearchParams(location.search).get("thanks")) {
     cart = []; render();
     const msg = document.createElement("div");
     msg.className = "modal show";
@@ -327,11 +328,11 @@
       <div class="check-icon">✅</div>
       <h3>Order Complete!</h3>
       <p style="color:var(--mute); margin:10px 0 20px;">Thank you for your purchase. Your items will arrive in-game shortly.</p>
-      <button class="go" onclick="window.location.href=window.location.pathname">Back to Store</button>
+      <button class="go" data-act="back-to-store">Back to Store</button>
     </div>`;
     document.body.appendChild(msg);
     overlay(true);
-    history.replaceState(null, "", location.pathname); 
+    history.replaceState(null, "", location.pathname);
   }
 
   (() => {
