@@ -26,6 +26,7 @@
   function makeFmt() { return new Intl.NumberFormat("en-GB", {style: "currency", currency: currentCurrency}); }
   const money = n => fmt.format(n * fxRate);
 
+  // Rates come from our own server (/api/rates), not a third party
   async function fetchExchangeRates() {
     fxRate = 1;
     if (currentCurrency !== baseCurrency) {
@@ -74,6 +75,7 @@
   $("#dc").href = C.discord; $("#dc2").href = C.discord;
   document.title = "⚔️ " + C.serverName + " Store";
 
+  // Image failed to load -> show the text fallback (no inline onerror, so it works with our CSP)
   document.addEventListener("error", e => {
     const t = e.target;
     if (!t || t.tagName !== "IMG") return;
@@ -101,6 +103,7 @@
     }
   });
 
+  // Server status + Discord member count, both via our own /api/status
   function online() {
     fetch(`${API}/status`).then(r => r.json()).then(j => {
       $("#online").hidden = !j.online;
@@ -187,20 +190,23 @@
   }
 
   function compare() {
-    const K = C.compare, el = $("#compare"); 
+    const K = C.compare, el = $("#compare");
     if (!K || !el) return;
     const byName = n => Object.values(packs).find(p => p.name === n);
     el.hidden = false;
     el.querySelector(".cmp").innerHTML = `<table><thead><tr><th></th>${K.cols.map(n => { const p = byName(n); return `<th>${esc(n)}${p ? `<small>${money(priceOf(p))}</small>` : ""}</th>`; }).join("")}</tr></thead><tbody>${K.rows.map(r => `<tr><th>${esc(r[0])}</th>${r.slice(1).map(v => `<td>${v === "✓" ? '<span class="y">✓</span>' : v === "-" ? '<span class="n">–</span>' : esc(v)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
   }
-  
+
   function card(p) {
     const x = C.items[p.name] || {}, img = safeImg(x.image || p.image), price = priceOf(p), base = Number(p.base_price || price);
     const sale = base > price, bonus = x.bonus || (sale ? "-" + Math.round((1 - price / base) * 100) + "% OFF" : "");
+    // Fallback is always rendered; CSS hides it unless the thumb has the "noimg" class
     const fallbackNum = `<div class="num"><b>${esc(x.big || "")}</b><small>${esc(x.label || "")}</small></div>`;
+    // Only items that have perks get the "View perks" hover and the popup
+    const perksAttrs = x.perks ? ` data-act="open-perks" data-id="${+p.id}"` : "";
 
     return `<article class="card${x.popular ? " pop" : ""}">
-      <div class="thumb${img ? "" : " noimg"}" data-act="open-perks" data-id="${+p.id}">
+      <div class="thumb${img ? "" : " noimg"}${x.perks ? " hasperks" : ""}"${perksAttrs}>
         ${fallbackNum}
         ${img ? `<img src="${esc(img)}" alt="${esc(p.name)}" loading="lazy">` : ""}
         ${C.showBadges ? `<div class="badges">${x.popular ? '<span class="b red">Most popular</span>' : ""}${bonus ? `<span class="b">${esc(bonus)}</span>` : ""}</div>` : ""}
@@ -255,19 +261,20 @@
     const p = packs[id]; if (!p) return;
     const x = C.items[p.name] || {};
     $("#perkTitle").textContent = p.name;
-    
+
+    // Perks come from config.js (trusted), so links in them are allowed
     if (x.perks) {
       $("#perkList").innerHTML = x.perks.map(k => `<li>${k}</li>`).join("");
     } else {
       $("#perkList").innerHTML = `<li>${esc(strip(p.description))}</li>`;
     }
-    
+
     const btn = $("#perkAddBtn");
     btn.dataset.id = id;
     btn.onclick = () => { closeAll(); addToCart(id); };
-    
-    closeAll(); 
-    $("#perkModal").classList.add("show"); 
+
+    closeAll();
+    $("#perkModal").classList.add("show");
     overlay(true);
   }
 
@@ -342,6 +349,7 @@
     const c = $("#count"); c.classList.remove("bump"); void c.offsetWidth; c.classList.add("bump");
   }
 
+  // Tebex redirects back to ?thanks=1 after payment (display only, not proof of payment)
   if (new URLSearchParams(location.search).get("thanks")) {
     cart = []; render();
     const msg = document.createElement("div");

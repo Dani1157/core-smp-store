@@ -135,6 +135,7 @@ input:focus{outline:2px solid var(--accent);border-color:transparent}
 #perkModal ul { margin:0; padding:0; list-style:none; display:grid; gap:8px; }
 #perkModal li { color:var(--text); padding-left:24px; position:relative; font-size:.95rem; }
 #perkModal li::before { content:""; position:absolute; left:4px; top:.4em; width:8px; height:8px; background:var(--accent); border-radius:2px; }
+#perkModal li a { color:var(--accent); font-weight:700; }
 #perkModal .add { width: 100%; margin-top: 24px; justify-content: center; padding: 16px; font-size: 1.1rem; }
 
 .drawer{position:fixed;top:0;right:0;bottom:0;width:min(400px,100%);z-index:70;background:#0a0a0a;border-left:1px solid var(--line);transform:translateX(105%);transition:.3s;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);box-shadow:-20px 0 60px rgba(0,0,0,.6)}
@@ -274,3 +275,19 @@ footer{background:#000000}
 .thumb:not(.noimg) .num { display: none; }
 .thumb.noimg img { display: none; }
 .success-msg { color: var(--mute); margin: 10px 0 20px; }
+
+/* "View perks" hover overlay (only on items that have perks) */
+.thumb.hasperks::after{content:"View perks";position:absolute;inset:0;z-index:4;display:grid;place-items:center;background:rgba(0,0,0,.6);color:#fff;font-weight:900;letter-spacing:.05em;text-transform:uppercase;opacity:0;transition:.25s;pointer-events:none}
+.thumb.hasperks:hover::after{opacity:1}
+
+/* Compare ranks table */
+.cmpwrap{margin:10px 0 44px}
+.cmp{overflow-x:auto;border:1px solid var(--line);border-radius:16px;background:var(--card)}
+.cmp table{width:100%;border-collapse:collapse;min-width:560px}
+.cmp th,.cmp td{padding:16px 14px;text-align:center;border-bottom:1px solid var(--line);font-size:.92rem}
+.cmp thead th{background:#1f0a0e;font-weight:900;font-size:1rem}
+.cmp thead th small{display:block;color:#ff3b5c;font-size:.8rem;margin-top:2px}
+.cmp tbody th{text-align:left;font-weight:800}
+.cmp tr:last-child th,.cmp tr:last-child td{border-bottom:0}
+.cmp .y{color:#2ee66b;font-weight:900}
+.cmp .n{color:#555}
