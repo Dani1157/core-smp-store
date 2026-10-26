@@ -1,71 +1,62 @@
 "use strict";
 (() => {
-  const API = "/api"; 
+  const API = "/api";
   const C = window.CORE_CONFIG;
   const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const strip = s => String(s || "").replace(/<[^>]*>/g, "");
   const safeImg = u => /^(https:\/\/|\.?\/?images\/)[^\s"'()<>]+$/i.test(u || "") ? u : "";
   const JAVA = /^[A-Za-z0-9_]{3,16}$/, BEDROCK = /^[A-Za-z0-9_ ]{1,16}$/;
+  const CURRENCIES = ["GBP", "USD", "EUR"];
   const store = {
     get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   };
 
-  let packs = {}, cats = [], live = false, edition = "java", slide = 0, timer, lastErr = "";
-  let cart = store.get("core_cart", []).filter(i => i && Number.isInteger(i.id) && i.qty > 0 && i.qty <= 10);
+  let packs = {}, cats = [], live = false, edition = "java", slide = 0, timer;
+  let cart = store.get("core_cart", []).filter(i => i && Number.isInteger(i.id) && Number.isInteger(i.qty) && i.qty > 0 && i.qty <= 10);
   let user = store.get("core_user", null);
   if (user && !(user.edition === "bedrock" ? BEDROCK : JAVA).test(user.name || "")) user = null;
-  
-  let baseCurrency = C.currency || "GBP";
+
+  const baseCurrency = C.currency || "GBP";
   let currentCurrency = store.get("core_currency", baseCurrency);
-  let fxRate = 1; 
-  let fmt = new Intl.NumberFormat("en-GB", {style: "currency", currency: currentCurrency});
+  if (!CURRENCIES.includes(currentCurrency)) currentCurrency = baseCurrency;
+  let fxRate = 1;
+  let fmt = makeFmt();
+  function makeFmt() { return new Intl.NumberFormat("en-GB", {style: "currency", currency: currentCurrency}); }
   const money = n => fmt.format(n * fxRate);
 
+  // Rates come from our own server (/api/rates), not a third party
   async function fetchExchangeRates() {
-    try {
-      const res = await fetch(`https://api.exchangerate-api.com/v4/latest/${baseCurrency}`);
-      const data = await res.json();
-      if (data && data.rates && data.rates[currentCurrency]) {
-        fxRate = data.rates[currentCurrency];
-        fmt = new Intl.NumberFormat("en-GB", {style: "currency", currency: currentCurrency});
+    fxRate = 1;
+    if (currentCurrency !== baseCurrency) {
+      try {
+        const res = await fetch(`${API}/rates`);
+        if (!res.ok) throw new Error("rates unavailable");
+        const data = await res.json();
+        if (data && data[currentCurrency]) fxRate = data[currentCurrency];
+        else throw new Error("no rate");
+      } catch (e) {
+        fxRate = ({EUR: 1.17, USD: 1.27})[currentCurrency] ?? 1;
       }
-    } catch (e) {
-      if (currentCurrency === "EUR") fxRate = 1.17;
-      if (currentCurrency === "USD") fxRate = 1.27;
-      fmt = new Intl.NumberFormat("en-GB", {style: "currency", currency: currentCurrency});
     }
-    render();
-    if (typeof loadCards === "function") loadCards();
+    fmt = makeFmt();
   }
 
-  async function detectUserCurrency() {
-    if (store.get("core_currency")) return;
-    try {
-      const res = await fetch("https://ipapi.co/json/");
-      const data = await res.json();
-      if (data && data.country_code) {
-        if (data.country_code === "US") currentCurrency = "USD";
-        else if (["GB", "EU", "FR", "DE", "ES", "IT"].includes(data.country_code)) currentCurrency = "EUR"; 
-        else currentCurrency = baseCurrency;
-        const s = $("#currencySel"); if (s) s.value = currentCurrency;
-      }
-    } catch (e) {}
-  }
-
-  function changeCurrency(cur) {
+  async function changeCurrency(cur) {
+    if (!CURRENCIES.includes(cur)) return;
     currentCurrency = cur;
     store.set("core_currency", cur);
-    fxRate = 1; 
-    fetchExchangeRates();
+    await fetchExchangeRates();
+    render();
+    if (cats.length) loadCards();
   }
 
-  const priceOf = p => { 
-    const v = C.priceMode === "total" ? p.total_price : p.price; 
-    return Number(v ?? p.price ?? p.base_price ?? 0); 
+  const priceOf = p => {
+    const v = C.priceMode === "total" ? p.total_price : p.price;
+    return Number(v ?? p.price ?? p.base_price ?? 0);
   };
-  
+
   const uname = () => user ? (user.edition === "bedrock" ? "." : "") + user.name : "";
   const head = () => user && user.edition === "java" ? "https://mc-heads.net/avatar/" + encodeURIComponent(user.name) + "/40" : "";
 
@@ -80,7 +71,15 @@
   $("#ip").textContent = C.serverIP; $("#ip2").textContent = C.serverIP;
   $("#dc").href = C.discord; $("#dc2").href = C.discord;
   document.title = "⚔️ " + C.serverName + " Store";
-  document.addEventListener("error", e => { if (e.target.tagName === "IMG") e.target.classList.add("broken"); }, true);
+
+  // Image failed to load -> show the text fallback (no inline onerror, so it works with our CSP)
+  document.addEventListener("error", e => {
+    const t = e.target;
+    if (!t || t.tagName !== "IMG") return;
+    t.classList.add("broken");
+    const thumb = t.closest(".thumb");
+    if (thumb) thumb.classList.add("noimg");
+  }, true);
 
   const cursor = document.getElementById("cursor");
   if (cursor) {
@@ -92,30 +91,24 @@
   }
 
   const sel = $("#currencySel");
-  if (sel) { sel.value = currentCurrency; sel.addEventListener("change", (e) => changeCurrency(e.target.value)); }
+  if (sel) { sel.value = currentCurrency; sel.addEventListener("change", e => changeCurrency(e.target.value)); }
 
-  window.addEventListener("pageshow", (event) => {
+  window.addEventListener("pageshow", event => {
     if (event.persisted) {
       const btn = $("#checkout");
       if (btn) { btn.disabled = false; btn.textContent = user ? "Checkout securely" : "Sign in to checkout"; }
     }
   });
 
+  // Server status + Discord member count, both via our own /api/status
   function online() {
-    const addr = encodeURIComponent(C.serverIP + (C.serverPort ? ":" + C.serverPort : ""));
-    const show = j => { if (!j || !j.online) throw 0; $("#onlineN").textContent = (j.players && j.players.online != null ? j.players.online + " " : "") + "ONLINE"; $("#online").hidden = false; };
-    const get = u => fetch(u).then(r => r.json());
-    get("https://api.mcstatus.io/v2/status/java/" + addr).then(show)
-      .catch(() => get("https://api.mcsrvstat.us/3/" + addr).then(show))
-      .catch(() => get("https://api.mcstatus.io/v2/status/bedrock/" + addr).then(show))
-      .catch(() => { $("#online").hidden = true; });
+    fetch(`${API}/status`).then(r => r.json()).then(j => {
+      $("#online").hidden = !j.online;
+      if (j.online) $("#onlineN").textContent = (j.players != null ? j.players + " " : "") + "ONLINE";
+      if (j.members) $("#dcN").textContent = j.members.toLocaleString();
+    }).catch(() => { $("#online").hidden = true; });
   }
   online(); setInterval(online, 60000);
-  
-  fetch("https://discord.com/api/v9/invites/" + encodeURIComponent(C.discord.split("/").pop()) + "?with_counts=true")
-    .then(r => r.ok ? r.json() : null)
-    .then(j => { if (j && j.approximate_member_count) $("#dcN").textContent = j.approximate_member_count.toLocaleString(); })
-    .catch(() => {});
 
   function buildHero() {
     $("#slides").innerHTML = C.slides.map((s, n) => `<div class="slide${n ? "" : " on"}">${safeImg(s.image) ? `<img src="${esc(s.image)}" alt="">` : ""}<div class="cap"><h1>${esc(s.title)}</h1><p>${esc(s.text)}</p><a class="cta" href="#shop">Shop now ↓</a></div></div>`).join("");
@@ -134,12 +127,11 @@
   async function load() {
     try {
       const r = await fetch(`${API}/categories`);
-      if (!r.ok) throw "Server rejected request";
+      if (!r.ok) throw new Error("Server rejected request");
       const j = await r.json();
       cats = j.data; live = true;
     } catch (e) {
-      lastErr = typeof e === "string" ? e : "request blocked or offline";
-      if (C.demo) { 
+      if (C.demo) {
         cats = [
           {name:"Packages",description:"Show off your rank in chat.",packages:[
             {id:1,name:"+ Rank",description:"+ rank tag in chat",price:2.99,base_price:2.99},
@@ -170,9 +162,9 @@
     cats = cats.filter(c => (c.packages || []).length);
     packs = {}; cats.forEach(c => c.packages.forEach(p => packs[p.id] = p));
     cart = cart.filter(i => packs[i.id]).map(i => ({...i, name: packs[i.id].name, price: priceOf(packs[i.id])}));
-    
-    await fetchExchangeRates(); 
-    loadCards(); 
+
+    await fetchExchangeRates();
+    loadCards();
     render();
   }
 
@@ -181,10 +173,10 @@
     $("#store").innerHTML = (live || !C.demo ? "" : '<p class="sub">Store preview: live checkout is offline right now, but you can browse everything.</p>') + cats.map((c, n) => `
       <section class="cat" data-cat="${n}"><h2 class="center">${esc(c.name)}</h2><p class="sub">${esc(strip(c.description))}</p>
       <div class="grid">${c.packages.map(card).join("")}</div></section>`).join("");
-    
+
     const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), {threshold: .05, rootMargin: "0px 0px -50px 0px"});
     $$(".card").forEach((c, n) => { c.style.transitionDelay = (n % 4) * 60 + "ms"; io.observe(c); });
-    
+
     if (cursor) {
       $$(".thumb").forEach(el => {
         el.addEventListener("mouseenter", () => cursor.classList.add("hover"));
@@ -192,16 +184,17 @@
       });
     }
   }
-  
+
   function card(p) {
     const x = C.items[p.name] || {}, img = safeImg(x.image || p.image), price = priceOf(p), base = Number(p.base_price || price);
     const sale = base > price, bonus = x.bonus || (sale ? "-" + Math.round((1 - price / base) * 100) + "% OFF" : "");
+    // Fallback is always rendered; CSS hides it unless the thumb has the "noimg" class
     const fallbackNum = `<div class="num"><b>${esc(x.big || "")}</b><small>${esc(x.label || "")}</small></div>`;
-    
+
     return `<article class="card${x.popular ? " pop" : ""}">
-      <div class="thumb">
-        ${!img ? fallbackNum : ""}
-        ${img ? `<img src="${esc(img)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'; this.previousElementSibling.style.display='block';">` : ""}
+      <div class="thumb${img ? "" : " noimg"}">
+        ${fallbackNum}
+        ${img ? `<img src="${esc(img)}" alt="${esc(p.name)}" loading="lazy">` : ""}
         ${C.showBadges ? `<div class="badges">${x.popular ? '<span class="b red">Most popular</span>' : ""}${bonus ? `<span class="b">${esc(bonus)}</span>` : ""}</div>` : ""}
       </div>
       <div class="info"><h3>${esc(p.name)}</h3>
@@ -258,24 +251,25 @@
     if (!live) return msg.textContent = "The store isn’t connected right now.";
     if (Date.now() - last < 3000) return; last = Date.now();
     btn.disabled = true; btn.textContent = "Loading…";
-    
+
     try {
       const res = await fetch(`${API}/checkout`, {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({ username: uname(), cart: cart.map(i => ({ id: i.id, qty: i.qty })) })
       });
-      
+
+      if (res.status === 429) throw new Error("Too many attempts, wait a minute.");
       if (!res.ok) throw new Error("Checkout failed");
       const data = await res.json();
-      
+
       if (data.url) {
         location.href = data.url;
       } else {
         throw new Error("No URL returned");
       }
     } catch (e) {
-      msg.textContent = "Checkout failed. Please try again.";
+      msg.textContent = e.message === "Too many attempts, wait a minute." ? e.message : "Checkout failed. Please try again.";
       btn.disabled = false; render();
     }
   }
@@ -288,7 +282,7 @@
       case "qty": { const i = cart.find(x => x.id === +d.id); if (i) { i.qty = Math.min(10, i.qty + +d.d); cart = cart.filter(x => x.qty > 0); render(); } break; }
       case "open-cart": openCart(); break;
       case "open-sign": openSign(); break;
-      case "open-discord": window.open(C.discord, "_blank"); break;
+      case "open-discord": window.open(C.discord, "_blank", "noopener,noreferrer"); break;
       case "close": closeAll(); break;
       case "edition": setEdition(d.ed); break;
       case "login": login(); break;
@@ -301,8 +295,8 @@
       case "prev": go(slide - 1); window.__auto(); break;
       case "next": go(slide + 1); window.__auto(); break;
       case "dot": go(+d.n); window.__auto(); break;
-      case "back-to-store": 
-        window.location.href = window.location.pathname; 
+      case "back-to-store":
+        window.location.href = window.location.pathname;
         break;
     }
   });
@@ -319,7 +313,7 @@
     const c = $("#count"); c.classList.remove("bump"); void c.offsetWidth; c.classList.add("bump");
   }
 
-  // FIXED: Show success screen when Tebex redirects back to ?thanks=1
+  // Tebex redirects back to ?thanks=1 after payment (display only, not proof of payment)
   if (new URLSearchParams(location.search).get("thanks")) {
     cart = []; render();
     const msg = document.createElement("div");
@@ -327,7 +321,7 @@
     msg.innerHTML = `<div class="success-panel">
       <div class="check-icon">✅</div>
       <h3>Order Complete!</h3>
-      <p style="color:var(--mute); margin:10px 0 20px;">Thank you for your purchase. Your items will arrive in-game shortly.</p>
+      <p class="success-msg">Thank you for your purchase. Your items will arrive in-game shortly.</p>
       <button class="go" data-act="back-to-store">Back to Store</button>
     </div>`;
     document.body.appendChild(msg);
