@@ -279,3 +279,7 @@ footer{background:#000000}
   
   .drawer { width: 100%; }
 }
+
+.thumb:not(.noimg) .num { display: none; }
+.thumb.noimg img { display: none; }
+.success-msg { color: var(--mute); margin: 10px 0 20px; }
